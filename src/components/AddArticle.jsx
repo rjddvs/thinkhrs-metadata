@@ -11,11 +11,10 @@ import {
 import "bootstrap/dist/css/bootstrap.min.css";
 import { FaWindowClose } from "react-icons/fa";
 import FirebaseService from "../services/firebaseservice";
-import "../services/hashtag"
+import "../services/hashtag";
 import hashtag from "../services/hashtag";
 
 const AddArticle = (props) => {
-
   const [articleUrl, setArticleUrl] = useState("");
   const [articleHashTag, setArticleHashTag] = useState("");
   const [articlesHashTags, setArticleHashTags] = useState([]);
@@ -24,6 +23,7 @@ const AddArticle = (props) => {
   const [metadata, setMetadata] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
 
+  const FIRESTORE_COLLECTION = "metadata";
   const firebaseservice = new FirebaseService();
   firebaseservice.init();
 
@@ -44,10 +44,8 @@ const AddArticle = (props) => {
     const metadata = await firebaseservice.getMetadata(articleUrl);
     console.log("retrieving metadata " + JSON.stringify(metadata));
     setMetadata(metadata.data);
- key
-    //clearArticleForm();
   };
-   
+
   const clearArticleForm = () => {
     setArticleUrl("");
     setArticleHashTag("");
@@ -57,33 +55,33 @@ const AddArticle = (props) => {
 
   const closeArticleHashTag = (articleHashTag) => {
     const newArticleHashTags = articlesHashTags.filter(
-      
       (e) => e !== articleHashTag
-    
     );
     setArticleHashTags(newArticleHashTags);
   };
 
   const addArticleHashTag = () => {
     const MAX_HASHTAGS_LENGTH = 20;
-    if (articleHashTag.trim() === "" || articlesHashTags.length === MAX_HASHTAGS_LENGTH ) {
+    if (
+      articleHashTag.trim() === "" ||
+      articlesHashTags.length === MAX_HASHTAGS_LENGTH
+    ) {
       return;
     }
+    const newArticleHashTags = [...articlesHashTags];
+    articleHashTag.split(/\s/).forEach((a) => {
+      const newArticleHashTag = hashtag(a);
 
-    const newArticleHashTag = hashtag(articleHashTag);
+      const found = newArticleHashTags.find((a) => a === newArticleHashTag);
 
-    const found = articlesHashTags.find(
-      (a) => a === newArticleHashTag
-    );
+      if (!found) {
+        newArticleHashTags.push(newArticleHashTag);
+      }
+      console.log(a);
+    });
 
-    if (!found) {
-      setArticleHashTags([
-        ...articlesHashTags,
-        newArticleHashTag,
-      ]);
-      setArticleHashTag("");
-    }
-    console.log(articlesHashTags);
+    setArticleHashTags([...articlesHashTags, ...newArticleHashTags]);
+    setArticleHashTag("");
   };
 
   const saveArticleMetadataAndHashTags = () => {
@@ -91,23 +89,22 @@ const AddArticle = (props) => {
       return "";
     }
     const submitObj = {
-      "hashtags": articlesHashTags,
-      "url": articleUrl,
-      "image": metadata.image,
-      "description": metadata.description,
-      "title":metadata.title
-    }
+      hashtags: articlesHashTags,
+      url: articleUrl,
+      image: metadata.image,
+      description: metadata.description,
+      title: metadata.title,
+    };
     setSuccessShowToast(true);
     setToastMessage("Saving Article Metadata...");
-    firebaseservice.save("metadata", submitObj);
+    firebaseservice.save(FIRESTORE_COLLECTION, submitObj);
     console.log(submitObj);
-
   };
 
   const articleFigure = () => {
-     if (metadata === null) {
-       return "";
-     }
+    if (metadata === null) {
+      return "";
+    }
     return (
       <Figure>
         <Figure.Image
@@ -121,7 +118,7 @@ const AddArticle = (props) => {
         </Figure.Caption>
         <Figure.Caption>{metadata.description}</Figure.Caption>
       </Figure>
-     );
+    );
   };
 
   const articleSaveButton = () => {
@@ -140,7 +137,7 @@ const AddArticle = (props) => {
         </Col>
       </Form.Row>
     );
-  }
+  };
 
   return (
     <Modal
